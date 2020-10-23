@@ -1,7 +1,7 @@
 # Modified Nodal Analysis for Julia
 
-Modified Nodal Analysis of circuits, based
-on Symbolic Algebra ([Reduce.jl](https://reduce.crucialflow.com/stable/))
+[Symbolic](https://reduce.crucialflow.com/stable/) 
+Modified Nodal Analysis.
 
 See `example/butterworthLowPass.jl` for intended use.
 
