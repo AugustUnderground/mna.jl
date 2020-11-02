@@ -12,7 +12,7 @@ Performs modified nodal analysis (mna) on the given
 `netlist` and returns the vector containing node voltages
 and branch currents, as well as the transfer function H(ω).
 """
-function analyze(netlist::Dict)
+function analyze(netlist::Dict, ω = nothing)
 
     Reduce.rounded(true);
     Algebra.scientific_notation(2,2);
@@ -37,9 +37,9 @@ function analyze(netlist::Dict)
         if type in [:R :Z :VCCS]
             return (1 / value)
         elseif type == :C
-            return (:s * im * value)
+            return (im * (ω == nothing ? :s : ω) * value)
         elseif type == :L
-            return (1 / (:s * im * value))
+            return (1 / (im * (ω == nothing ? :s : ω) * value))
         else
             return value
         end
@@ -109,7 +109,11 @@ function analyze(netlist::Dict)
         end
     end
 
-    x = RExpr(M \ y);
+    if ω == nothing
+        x = RExpr(M \ y);
+    else
+        x = convert(Array{Complex, 2}, M) \ convert(Array{Complex, 1}, y);
+    end
 
     return x
 end
