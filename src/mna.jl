@@ -3,19 +3,33 @@ module mna
 using Reduce
 @force using Reduce.Algebra
 
-export numNodes, analyze, transferFunction
+export nodes, volts, analyze, transferFunction
 
 """
-    numNodes(netlist::Dict)::Int64
+    nodes(netlist::Dict)::Array{Int64,1}
 
-Takes a netlist dictionary and returns the number of
+Takes a netlist dictionary and returns a list of all
 nodes in the netlist.
 """
-function numNodes(netlist::Dict)::Int64
-    return length( values(netlist) 
+function nodes(netlist::Dict)::Array{Int64,1}
+    return ( values(netlist) 
                  |> x -> reduce((n,p) ->  [n...,p[2:(end-1)]...], x, init=[])
                  |> unique
                  |> x -> filter((n) -> n != 0, x))
+end
+
+"""
+    volts(netlist::Dict)::Array{Any,1}
+
+Takes a netlist dictionary and returns all the voltages
+in the netlist.
+"""
+function volts(netlist::Dict)::Array{Any,1}
+    return ( keys(netlist)
+           |> x -> filter( c -> in( first(netlist[c])
+                                  , [:V :VCVS :VCCS :CCVS :CCCS] )
+                         , x)
+           |> x -> identity.(x) )
 end
 
 """
@@ -30,16 +44,12 @@ function analyze(netlist::Dict, ω = nothing)
     Reduce.rounded(true);
     Algebra.scientific_notation(2,2);
 
-    volts = (keys(netlist)
-            |> x -> filter(c -> in( first(netlist[c])
-                                  , [:V :VCVS :VCCS :CCVS :CCCS] )
-                          , x)
-            |> x -> identity.(x) );
-
-    m = numNodes(netlist);
-    n = length(volts);
+    m = length(nodes(netlist));
+    n = length(volts(netlist));
     M = RExpr(zeros(m+n , m+n)) |> parse |> Reduce.mat;
     y = RExpr(zeros(m+n , 1)) |> parse |> Reduce.mat;
+
+    v = volts(netlist);
 
     expr = function(type, value)
         if type in [:R :Z :VCCS]
@@ -74,7 +84,7 @@ function analyze(netlist::Dict, ω = nothing)
                 y[i[1]] = y[i[1]] + i[2];
             end
         elseif type == :V
-            i_idx = m + findfirst(x -> x == id, volts);
+            i_idx = m + findfirst(x -> x == id, v);
             y[i_idx] = y[i_idx] + value;
             m_idx = ( identity.(zip(nodes, [1,-1])) 
                     |> x -> filter(y -> y[1] != 0, x) );
@@ -83,7 +93,7 @@ function analyze(netlist::Dict, ω = nothing)
                 M[i_idx, m[1]] = M[i_idx, m[1]] + m[2];
             end
         elseif type == :VCCS
-            i_idx = m + findfirst(x -> x == id, volts);
+            i_idx = m + findfirst(x -> x == id, v);
             b_idx = ( identity.(zip(nodes[1:2], [-1 1])) 
                     |> x -> filter(y -> y[1] != 0, x) );
             c_idx = ( identity.(zip(nodes[3:4], [1 -1])) 
@@ -97,7 +107,7 @@ function analyze(netlist::Dict, ω = nothing)
                 M[i_idx, c[1]] = M[i_idx, c[1]] + c[2];
             end
         elseif type == :VCVS
-            i_idx = m + findfirst(x -> x == id, volts);
+            i_idx = m + findfirst(x -> x == id, v);
             b_idx = ( identity.(zip(nodes[3:4], [1 -1])) 
                     |> x -> filter(y -> y[1] != 0, x) );
             c_idx = ( identity.(zip(nodes, [-value value 1 -1])) 
