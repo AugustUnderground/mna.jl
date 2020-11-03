@@ -3,7 +3,20 @@ module mna
 using Reduce
 @force using Reduce.Algebra
 
-export analyze, transferFunction
+export numNodes, analyze, transferFunction
+
+"""
+    numNodes(netlist::Dict)::Int64
+
+Takes a netlist dictionary and returns the number of
+nodes in the netlist.
+"""
+function numNodes(netlist::Dict)::Int64
+    return length( values(netlist) 
+                 |> x -> reduce((n,p) ->  [n...,p[2:(end-1)]...], x, init=[])
+                 |> unique
+                 |> x -> filter((n) -> n != 0, x))
+end
 
 """
     analyze(netlist::Dict)::Dict
@@ -17,18 +30,13 @@ function analyze(netlist::Dict, ω = nothing)
     Reduce.rounded(true);
     Algebra.scientific_notation(2,2);
 
-    nodes = ( values(netlist) 
-             |> x -> reduce((n,p) ->  [n...,p[2:(end-1)]...], x, init=[])
-             |> unique
-             |> x -> filter((n) -> n != 0, x));
-
     volts = (keys(netlist)
             |> x -> filter(c -> in( first(netlist[c])
                                   , [:V :VCVS :VCCS :CCVS :CCCS] )
                           , x)
             |> x -> identity.(x) );
 
-    m = length(nodes);
+    m = numNodes(netlist);
     n = length(volts);
     M = RExpr(zeros(m+n , m+n)) |> parse |> Reduce.mat;
     y = RExpr(zeros(m+n , 1)) |> parse |> Reduce.mat;
