@@ -33,17 +33,12 @@ function volts(netlist::Dict)::Array{Any,1}
 end
 
 """
-    analyze(netlist::Dict)::Dict
+    systemMatrix(netlist::Dict, ω::Any)::Tuple
 
-Performs modified nodal analysis (mna) on the given
-`netlist` and returns the vector containing node voltages
-and branch currents, as well as the transfer function H(ω).
+Takes a netlist and a angle freuqency and returns the
+system matrix, as well as the y vector.
 """
-function analyze(netlist::Dict, ω = nothing)
-
-    Reduce.rounded(true);
-    Algebra.scientific_notation(2,2);
-
+function systemMatrix(netlist::Dict, ω::Any)::Tuple
     m = length(nodes(netlist));
     n = length(volts(netlist));
     M = RExpr(zeros(m+n , m+n)) |> parse |> Reduce.mat;
@@ -126,6 +121,22 @@ function analyze(netlist::Dict, ω = nothing)
             nothing
         end
     end
+    
+    return (M, y)
+end
+
+"""
+    analyze(netlist::Dict)::Dict
+
+Performs modified nodal analysis (mna) on the given
+`netlist` and returns the vector containing node voltages
+and branch currents, as well as the transfer function H(ω).
+"""
+function analyze(netlist::Dict, ω = nothing)
+
+    Reduce.rounded(true);
+    Algebra.scientific_notation(2,2);
+    M, y = systemMatrix(netlist, ω);
 
     if ω == nothing
         x = RExpr(M \ y);
