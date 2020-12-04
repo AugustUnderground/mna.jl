@@ -1,7 +1,7 @@
 name = "mna"
 uuid = "9cdbfd46-6477-4107-97dc-41965d8a5191"
 authors = ["Yannick Uhlmann <yannick.uhlmann@reutlingen-university.de>"]
-version = "0.2.2"
+version = "0.2.3"
 
 [deps]
 Calculus = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
